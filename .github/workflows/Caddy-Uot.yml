@@ -53,6 +53,7 @@ jobs:
         name: Caddy-Uot ${{ steps.cv.outputs.cv }} with ${{ steps.cv.outputs.gv }}
         tag_name: ${{ steps.date.outputs.date }}
         files: ./caddy.tar.gz
+        prerelease: true
     - name: Delete Artifacts
       uses: geekyeggo/delete-artifact@v1
       with:
