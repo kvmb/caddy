@@ -1,0 +1,60 @@
+name: Caddy-Uot Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: '*'
+        check-latest: true
+        
+    - name: Build
+      run: |
+        go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
+        ~/go/bin/xcaddy build master \
+        --with github.com/mholt/caddy-l4 \
+        --with github.com/caddyserver/forwardproxy@caddy2=github.com/SagerNet/forwardproxy@naive \
+        --with github.com/caddy-dns/cloudflare \
+        --with github.com/mholt/caddy-webdav \
+        --with github.com/mastercactapus/caddy2-proxyprotocol \
+        --with github.com/imgk/caddy-trojan
+        chmod +x caddy
+        tar zcvf ./caddy.tar.gz ./caddy
+    - name: Output
+      uses: actions/upload-artifact@v2
+      with:
+          name: Caddy
+          path: ./caddy.tar.gz
+          if-no-files-found: error
+    
+    - name: Get Current Date
+      id: date
+      run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+    
+    - name: Get Caddy Version
+      id: cv
+      run: |
+        echo "::set-output name=cv::$(./caddy version | awk '{print $1}')"
+        echo "::set-output name=gv::$(go version | awk '{print $3}')"
+    
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        name: Caddy-Uot ${{ steps.cv.outputs.cv }} with ${{ steps.cv.outputs.gv }}
+        tag_name: ${{ steps.date.outputs.date }}
+        files: ./caddy.tar.gz
+    - name: Delete Artifacts
+      uses: geekyeggo/delete-artifact@v1
+      with:
+        name: |
+          Caddy
